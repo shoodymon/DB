@@ -1,43 +1,119 @@
+--USE Hotel;
+
+---- 1.	Подсчитать количество номеров в отеле. 
+--SELECT COUNT(*) AS TotalRooms FROM Rooms;
+
+---- 2.	Подсчитать среднее количество номеров на этаже отеля.
+--SELECT AVG(RoomsPerFloor) AS AvgRoomsPerFloor
+--FROM (
+--    SELECT Floor, COUNT(*) AS RoomsPerFloor
+--    FROM Rooms
+--    GROUP BY Floor
+--) AS FloorsCount;
+
+---- 3.	Определить максимальную стоимость проживания в отеле.
+--SELECT MAX(Price) AS MaxPrice FROM RoomTypes;
+
+---- 4.	Определить среднюю продолжительность  проживания в отеле.
+--SELECT AVG(DATEDIFF(day, CheckInDate, CheckOutDate)) AS AvgStayDuration
+--FROM Status
+--WHERE CheckOutDate IS NOT NULL;
+
+---- 5.	Определить максимальную продолжительность проживания в отеле в прошлом месяце.
+--SELECT MAX(DATEDIFF(day, CheckInDate, CheckOutDate)) AS MaxStayDurationLastMonth
+--FROM Status
+--WHERE (CheckInDate BETWEEN '01/02/2025' AND '28/02/2025' OR 
+--      CheckOutDate BETWEEN '01/02/2025' AND '28/02/2025' OR
+--      (CheckInDate < '01/02/2025' AND CheckOutDate > '28/02/2025'));
+
+---- 6.	Определить количество клиентов, проживавших в отеле на прошлой неделе.
+----		Сегодня 24 февраля(пн). Делаем для 17-23 ферваля
+--SELECT COUNT(DISTINCT ClientCode) AS ClientsLastWeek
+--FROM Status
+--WHERE (CheckInDate BETWEEN '17/02/2025' AND '23/02/2025' OR 
+--      CheckOutDate BETWEEN '17/02/2025' AND '23/02/2025' OR
+--      (CheckInDate < '17/02/2025' AND (CheckOutDate > '17/02/2025' OR CheckOutDate IS NULL)));
+
+---- 7.	Определить суммарное количество номеров, забронированных на следующую неделю.
+----		Сегодня 24 февраля(пн). Делаем для 3-9 марта
+--SELECT COUNT(*) AS BookedRoomsNextWeek
+--FROM Status
+--WHERE (CheckInDate BETWEEN '03/03/2025' AND '09/03/2025' OR 
+--      CheckOutDate BETWEEN '03/03/2025' AND '09/03/2025' OR
+--      (CheckInDate < '03/03/2025' AND (CheckOutDate > '03/03/2025' OR CheckOutDate IS NULL)));
+
+
 USE Hotel;
 
--- 1.	Подсчитать количество номеров в отеле. 
+-- 1. Подсчитать количество номеров в отеле.
 SELECT COUNT(*) AS TotalRooms FROM Rooms;
 
--- 2.	Подсчитать среднее количество номеров на этаже отеля.
-SELECT AVG(RoomsPerFloor) AS AvgRoomsPerFloor
+-- 2. Подсчитать среднее количество номеров на этаже отеля.
+SELECT Floor, COUNT(*) AS RoomsPerFloor
+FROM Rooms
+GROUP BY Floor
+ORDER BY Floor;
+
+-- Дополнительно: общее среднее количество номеров на этаж
+SELECT AVG(RoomsCount) AS AvgRoomsPerFloor
 FROM (
-    SELECT Floor, COUNT(*) AS RoomsPerFloor
+    SELECT Floor, COUNT(*) AS RoomsCount
     FROM Rooms
     GROUP BY Floor
-) AS FloorsCount;
+) AS FloorStats;
 
--- 3.	Определить максимальную стоимость проживания в отеле.
-SELECT MAX(Price) AS MaxPrice FROM RoomTypes;
+--SELECT 
+--    COUNT(*) / COUNT(DISTINCT Floor) AS AvgRoomsPerFloor
+--FROM 
+--    Rooms;
 
--- 4.	Определить среднюю продолжительность  проживания в отеле.
+--SELECT 
+--    CAST(COUNT(*) AS FLOAT) / COUNT(DISTINCT Floor) AS AvgRoomsPerFloor
+--FROM 
+--    Rooms;
+
+-- 3. Определить максимальную стоимость проживания в отеле.
+SELECT TypeCode, Type, MAX(Price) AS MaxPrice 
+FROM RoomTypes
+GROUP BY TypeCode, Type
+ORDER BY MAX(Price) DESC;
+
+-- 4. Определить среднюю продолжительность проживания в отеле.
 SELECT AVG(DATEDIFF(day, CheckInDate, CheckOutDate)) AS AvgStayDuration
 FROM Status
-WHERE CheckOutDate IS NOT NULL;
+WHERE CheckOutDate IS NOT NULL
+GROUP BY YEAR(CheckInDate), MONTH(CheckInDate)
+ORDER BY YEAR(CheckInDate), MONTH(CheckInDate);
 
--- 5.	Определить максимальную продолжительность проживания в отеле в прошлом месяце.
+-- 5. Определить максимальную продолжительность проживания в отеле в прошлом месяце.
 SELECT MAX(DATEDIFF(day, CheckInDate, CheckOutDate)) AS MaxStayDurationLastMonth
 FROM Status
-WHERE (CheckInDate BETWEEN '01/02/2025' AND '28/02/2025' OR 
-      CheckOutDate BETWEEN '01/02/2025' AND '28/02/2025' OR
-      (CheckInDate < '01/02/2025' AND CheckOutDate > '28/02/2025'));
+WHERE MONTH(CheckInDate) = MONTH(DATEADD(month, -1, GETDATE()))
+AND YEAR(CheckInDate) = YEAR(DATEADD(month, -1, GETDATE()))
+GROUP BY YEAR(CheckInDate), MONTH(CheckInDate)
+HAVING MAX(DATEDIFF(day, CheckInDate, CheckOutDate)) > 0;
 
--- 6.	Определить количество клиентов, проживавших в отеле на прошлой неделе.
---		Сегодня 24 февраля(пн). Делаем для 17-23 ферваля
+-- 6. Определить количество клиентов, проживавших в отеле на прошлой неделе.
 SELECT COUNT(DISTINCT ClientCode) AS ClientsLastWeek
 FROM Status
-WHERE (CheckInDate BETWEEN '17/02/2025' AND '23/02/2025' OR 
-      CheckOutDate BETWEEN '17/02/2025' AND '23/02/2025' OR
-      (CheckInDate < '17/02/2025' AND (CheckOutDate > '17/02/2025' OR CheckOutDate IS NULL)));
+WHERE CheckInDate <= DATEADD(week, -1, GETDATE()) + 6 -- конец прошлой недели
+AND (CheckOutDate >= DATEADD(week, -1, GETDATE()) OR CheckOutDate IS NULL) -- начало прошлой недели или еще проживает
+GROUP BY DATEPART(week, CheckInDate)
+ORDER BY DATEPART(week, CheckInDate);
 
--- 7.	Определить суммарное количество номеров, забронированных на следующую неделю.
---		Сегодня 24 февраля(пн). Делаем для 3-9 марта
+---- 7. Определить суммарное количество номеров, забронированных на следующую неделю.
+--SELECT 
+--    DATEPART(week, CheckInDate) AS WeekNumber,
+--    COUNT(*) AS BookedRoomsNextWeek
+--FROM Status
+--WHERE CheckInDate <= DATEADD(week, 1, GETDATE()) + 6 -- конец следующей недели
+--AND (CheckOutDate >= DATEADD(week, 1, GETDATE()) OR CheckOutDate IS NULL) -- начало следующей недели или еще будет проживать
+--GROUP BY DATEPART(week, CheckInDate)
+--HAVING COUNT(*) > 0
+--ORDER BY WeekNumber;
+
+-- 7. Определить суммарное количество номеров, забронированных на следующую неделю.
 SELECT COUNT(*) AS BookedRoomsNextWeek
 FROM Status
-WHERE (CheckInDate BETWEEN '03/03/2025' AND '09/03/2025' OR 
-      CheckOutDate BETWEEN '03/03/2025' AND '09/03/2025' OR
-      (CheckInDate < '03/03/2025' AND (CheckOutDate > '03/03/2025' OR CheckOutDate IS NULL)));
+WHERE CheckInDate <= DATEADD(week, 1, GETDATE()) + 6 -- конец следующей недели
+AND (CheckOutDate >= DATEADD(week, 1, GETDATE()) OR CheckOutDate IS NULL); -- начало следующей недели или еще будет проживать
