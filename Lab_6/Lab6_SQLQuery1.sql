@@ -1,7 +1,6 @@
 USE Hotel;
 
 -- 1. Создать таблицу «Архив» и добавить тестовые данные за предыдущие годы
--- Сначала добавим несколько тестовых записей в Status за предыдущие годы
 INSERT INTO Status (ClientCode, RoomCode, CheckInDate, CheckOutDate)
 VALUES 
     (1, 3, '2022-06-15', '2022-06-20'),
@@ -9,7 +8,6 @@ VALUES
     (3, 11, '2024-01-05', '2024-01-12');
 GO
 
--- Создание таблицы Архив
 CREATE TABLE Archive (
     ArchiveID INT IDENTITY(1,1) PRIMARY KEY,
     ClientCode INT,
@@ -21,24 +19,20 @@ CREATE TABLE Archive (
 );
 GO
 
--- Вставка данных о заселении за предыдущие годы (до 2025)
 INSERT INTO Archive (ClientCode, RoomCode, CheckInDate, CheckOutDate)
 SELECT ClientCode, RoomCode, CheckInDate, CheckOutDate
 FROM Status
 WHERE YEAR(CheckInDate) < 2025;
 GO
 
--- Вывод созданной таблицы
 SELECT * FROM Archive;
 GO
 
 -- 2. Добавить в таблицу «Номера» поле «Количество окон» и внести данные
--- Добавление поля
 ALTER TABLE Rooms
 ADD WindowCount INT;
 GO
 
--- Обновление данных
 UPDATE Rooms
 SET WindowCount = 
     CASE 
@@ -47,7 +41,6 @@ SET WindowCount =
     END;
 GO
 
--- Вывод обновленной таблицы
 SELECT * FROM Rooms;
 GO
 
@@ -73,7 +66,6 @@ WHERE YEAR(CheckInDate) < 2025 AND NOT EXISTS (
 );
 GO
 
--- Затем удаляем их из таблицы Status
 DELETE FROM Status
 WHERE YEAR(CheckInDate) < 2025;
 GO
@@ -85,12 +77,10 @@ WITH ClientsStayedIn2025 AS (
     SELECT DISTINCT ClientCode FROM Status WHERE YEAR(CheckOutDate) = 2025 OR CheckOutDate IS NULL
 )
 
--- Удаляем записи из Status, ссылающиеся на клиентов, которых мы собираемся удалить
 DELETE FROM Status
 WHERE ClientCode NOT IN (SELECT ClientCode FROM ClientsStayedIn2025);
 GO
 
--- Удаляем записи из Archive, ссылающиеся на клиентов, которых мы собираемся удалить
 WITH ClientsStayedIn2025 AS (
     SELECT DISTINCT ClientCode FROM Status WHERE YEAR(CheckInDate) = 2025
     UNION
@@ -100,7 +90,6 @@ DELETE FROM Archive
 WHERE ClientCode NOT IN (SELECT ClientCode FROM ClientsStayedIn2025);
 GO
 
--- Теперь можно удалить самих клиентов
 WITH ClientsStayedIn2025 AS (
     SELECT DISTINCT ClientCode FROM Status WHERE YEAR(CheckInDate) = 2025
     UNION

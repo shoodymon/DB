@@ -67,8 +67,8 @@ ORDER BY Rooms.Number;
 --	1.	Найти однофамильцев среди клиентов.
 --INSERT INTO Clients (LastName, FirstName, MiddleName, PassportNumber)
 --VALUES ('Иванов', 'Сергей', 'Васильевич', 'МР7634211');
-DELETE FROM Clients 
-WHERE clientcode IN (11, 12);
+--DELETE FROM Clients 
+--WHERE clientcode IN (11, 12);
 
 SELECT Clients.LastName, COUNT(*) AS NumberOfClients
 FROM Clients
