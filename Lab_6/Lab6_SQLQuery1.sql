@@ -54,7 +54,6 @@ CREATE INDEX IX_Clients_PassportNumber ON Clients(PassportNumber);
 GO
 
 -- 4. Удалить из таблицы «Состояние» данные о заселении номеров за предыдущие годы
--- Сначала копируем данные в архив (если не сделали это в шаге 1)
 INSERT INTO Archive (ClientCode, RoomCode, CheckInDate, CheckOutDate)
 SELECT ClientCode, RoomCode, CheckInDate, CheckOutDate
 FROM Status
